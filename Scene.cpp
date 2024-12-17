@@ -68,9 +68,9 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
     // TO DO Implement Path Tracing Algorithm here
     Intersection inter = intersect(ray); // 入射光线求交
     if (!inter.happened) return this->backgroundColor; // 如果没有交点
-    Vector3f l_dir(0, 0, 0), l_indir(0, 0, 0), l_emit(0, 0, 0);
-    if (inter.m->hasEmission())         // 如果物体本身发光，要加上发光项
-        l_emit = inter.m->getEmission();
+    Vector3f l_dir(0, 0, 0), l_indir(0, 0, 0);
+    if (inter.m->hasEmission())         // 如果物体本身发光，直接返回光源亮度
+        return inter.m->getEmission();
 
     // Contribution from the light source.
     Intersection light_point;
@@ -83,12 +83,12 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
     Intersection block_check = intersect(Ray(inter.coords, ws));
     if ((light_coords - inter.coords).norm() - block_check.distance < EPSILON) {
         l_dir = emit * inter.m->eval(wo, ws, inter.normal) * dotProduct(ws, inter.normal) * dotProduct(-ws, light_normal) 
-        / dotProduct(light_coords, inter.coords) / pdf_light; 
+        / dotProduct(light_coords - inter.coords, light_coords - inter.coords) / pdf_light; 
     }
 
     // Contribution from other reflectors.
     if (get_random_float() > RussianRoulette) {
-        return l_dir + l_emit;
+        return l_dir;
     }
     Vector3f wi = inter.m->sample(wo, inter.normal);
     Ray r(inter.coords, wi);
@@ -100,5 +100,5 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
         }
     }
 
-    return l_dir + l_indir + l_emit;
+    return l_dir + l_indir;
 }
